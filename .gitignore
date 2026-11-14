@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node (frontend)
+node_modules/
+
+# Generated vector DB data (keep the folder itself)
+data/chroma_db/*
+!data/chroma_db/.gitkeep
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

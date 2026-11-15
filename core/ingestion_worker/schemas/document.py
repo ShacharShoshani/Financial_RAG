@@ -1,11 +1,11 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Literal
+from typing import Literal, List
 from datetime import datetime
 
 
 class FinancialDocument(BaseModel):
     title: str
-    text: str
+    sentences: List[str]
     ticker_symbol: str
     document_type: Literal[
         "news", "earnings_call", "sec_filing", "summary", "historical_company_facts"

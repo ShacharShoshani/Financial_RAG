@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 from dotenv import load_dotenv
 from sources import HistoricalEdgarFetcher
 
@@ -44,19 +43,18 @@ def main():
         print(f"Ticker:        {doc.ticker_symbol}")
         print(f"Source URL:    {doc.source_url}")
         
-        print("\n--- Data Snippet (First 500 chars) ---")
-        
-        # 1. Parse the dense string back into a Python dictionary
-        parsed_json = json.loads(doc.text)
-        
-        # 2. Re-serialize it with a 4-space indent for readability
-        pretty_json = json.dumps(parsed_json, indent=4)
-        
-        # 3. Print the formatted snippet
-        print(f"{pretty_json[:4000]}...")
-        print("-" * 38)
+        print(f"Sentences:     {len(doc.sentences):,}")
 
-        payload_mb = len(doc.text) / (1024 * 1024)
+        preview_count = 10
+        print(f"\n--- Sentence Preview (First {preview_count}) ---\n")
+        for i, sentence in enumerate(doc.sentences[:preview_count], start=1):
+            print(f"{i:>3}. {sentence}\n")
+        if len(doc.sentences) > preview_count:
+            print(f"     ... and {len(doc.sentences) - preview_count:,} more")
+        print("-" * 38 + "\n")
+
+        payload_bytes = sum(len(s.encode("utf-8")) for s in doc.sentences)
+        payload_mb = payload_bytes / (1024 * 1024)
         print(f"\nTotal Payload Size: {payload_mb:.2f} MB")
 
     except Exception as e:

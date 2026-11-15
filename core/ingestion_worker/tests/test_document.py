@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timezone
-from pydantic import ValidationError
+from pydantic import HttpUrl, ValidationError
 from schemas import FinancialDocument
 
 def test_financial_document_creation_success():
@@ -12,7 +12,7 @@ def test_financial_document_creation_success():
         "document_type": "earnings_call",
         "publish_date": datetime(2026, 11, 14, 15, 30, tzinfo=timezone.utc),
         "publisher": "Financial Modeling Prep",
-        "source_url": "https://financialmodelingprep.com/api/v3/earning_call_transcript/AAPL"
+        "source_url": HttpUrl("https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip")
     }
     
     doc = FinancialDocument(**valid_data)
@@ -20,7 +20,7 @@ def test_financial_document_creation_success():
     assert doc.title == "Apple Q3 Earnings Report"
     assert doc.ticker_symbol == "AAPL"
     assert doc.document_type == "earnings_call"
-    assert str(doc.source_url) == "https://financialmodelingprep.com/api/v3/earning_call_transcript/AAPL"
+    assert str(doc.source_url) == "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip"
 
 
 def test_financial_document_invalid_document_type():

@@ -5,6 +5,9 @@ description = "Ingestion worker for the financial RAG project"
 requires-python = ">=3.15.2"
 dependencies = [
     "pydantic>=2.14.3",
+    "python-dotenv>=1.2.4",
+    "requests>=2.34.2",
+    "tqdm>=4.70.1",
 ]
 
 [dependency-groups]

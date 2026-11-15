@@ -19,8 +19,12 @@ htmlcov/
 # Node (frontend)
 node_modules/
 
+# Ignore local data ingestion storage
+.data/
+data/*
+*.zip
+
 # Generated vector DB data (keep the folder itself)
-data/chroma_db/*
 !data/chroma_db/.gitkeep
 
 # OS / editors

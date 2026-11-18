@@ -34,26 +34,32 @@ def main():
             print(f"No documents returned for {ticker}.")
             sys.exit(1)
 
-        doc = documents[0]
-
         print("\n" + "=" * 40)
         print("✅ FETCH SUCCESSFUL")
         print("=" * 40)
-        print(f"Title:         {doc.title}")
-        print(f"Ticker:        {doc.ticker_symbol}")
-        print(f"Source URL:    {doc.source_url}")
-        
-        print(f"Sentences:     {len(doc.sentences):,}")
+        print(f"Ticker:        {ticker}")
+        print(f"Source URL:    {documents[0].source_url}")
+        print(f"Documents:     {len(documents):,}")
 
-        preview_count = 10
-        print(f"\n--- Sentence Preview (First {preview_count}) ---\n")
-        for i, sentence in enumerate(doc.sentences[:preview_count], start=1):
-            print(f"{i:>3}. {sentence}\n")
-        if len(doc.sentences) > preview_count:
-            print(f"     ... and {len(doc.sentences) - preview_count:,} more")
+        preview_count = 4
+        print(f"\n--- Document Preview (First {preview_count}) ---\n")
+        for i, doc in enumerate(documents[:preview_count], start=1):
+            print(f"{i:>3}. Title: {doc.title}\n")
+            print(f"  Content: {doc.sentences[0]}\n")
+            print(f"  Publish Date: {doc.publish_date.strftime('%Y-%m-%d')}\n")
+            print(f"  Description: {doc.description}\n")
+            print(f"  Ticker:      {doc.ticker_symbol}\n")
+            print(f"  Type:        {doc.document_type}\n")
+            print(f"  Publisher:   {doc.publisher}\n")
+            print(f"  Source URL:  {doc.source_url}\n")
+            print("-" * 38 + "\n")
+        if len(documents) > preview_count:
+            print(f"     ... and {len(documents) - preview_count:,} more")
         print("-" * 38 + "\n")
 
-        payload_bytes = sum(len(s.encode("utf-8")) for s in doc.sentences)
+        payload_bytes = sum(
+            len(s.encode("utf-8")) for doc in documents for s in doc.sentences
+        )
         payload_mb = payload_bytes / (1024 * 1024)
         print(f"\nTotal Payload Size: {payload_mb:.2f} MB")
 

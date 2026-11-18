@@ -11,6 +11,9 @@ from tqdm import tqdm
 from sources.base import BaseFetcher
 from schemas.document import FinancialDocument
 
+COMPANYFACTS_ZIP_URL = (
+    "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip"
+)
 
 class HistoricalEdgarFetcher(BaseFetcher):
     """
@@ -47,11 +50,7 @@ class HistoricalEdgarFetcher(BaseFetcher):
             print(
                 "Downloading historical SEC bulk data (~1GB compressed). This may take a while..."
             )
-            zip_url = (
-                "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip"
-            )
-
-            with requests.get(zip_url, headers=self.headers, stream=True) as response:
+            with requests.get(COMPANYFACTS_ZIP_URL, headers=self.headers, stream=True) as response:
                 response.raise_for_status()
 
                 # Get the total file size from the headers to calculate the percentage
@@ -80,16 +79,40 @@ class HistoricalEdgarFetcher(BaseFetcher):
         print("Extraction complete.")
 
     @staticmethod
-    def _convert_edgar_json_to_text(raw_json: Dict[str, Any]) -> List[str]:
+    def _parse_filed_date(filed: Optional[str]) -> datetime:
         """
-        Parses a raw SEC EDGAR companyfacts JSON object and flattens it
-        into a list of human-readable text strings for an embedding model.
+        Converts the 'filed' date of an EDGAR fact (YYYY-MM-DD) to a UTC datetime.
+        Falls back to the current time if the date is missing or malformed.
+        """
+        if filed:
+            try:
+                return datetime.strptime(filed, "%Y-%m-%d").replace(
+                    tzinfo=timezone.utc
+                )
+            except ValueError:
+                pass
+        return datetime.now(timezone.utc)
+
+    @staticmethod
+    def _convert_edgar_json_to_text(
+        raw_json: Dict[str, Any], ticker: str
+    ) -> List[FinancialDocument]:
+        """
+        Parses a raw SEC EDGAR companyfacts JSON object and turns every reported
+        fact into its own FinancialDocument holding a single human-readable sentence.
+
+        Args:
+            raw_json (Dict[str, Any]): The companyfacts JSON for a single company.
+            ticker (str): The stock ticker (e.g., 'AAPL').
+
+        Returns:
+            List[FinancialDocument]: One document per extracted fact.
         """
         # 1. Get the company name (Fallback to 'The company' if missing)
         entity_name = raw_json.get("entityName", "The company")
         facts_data = raw_json.get("facts", {})
 
-        text_chunks = []
+        documents: List[FinancialDocument] = []
 
         # 2. Iterate through all taxonomies (e.g., 'us-gaap', 'dei')
         for taxonomy, concepts in facts_data.items():
@@ -99,7 +122,6 @@ class HistoricalEdgarFetcher(BaseFetcher):
                 label = concept_info.get("label", concept_key)
                 description = concept_info.get("description", "")
                 description = description.strip() if description else ""
-                desc_text = f" (Definition: {description})" if description else ""
 
                 # 4. Iterate through measurement units (e.g., 'USD', 'shares')
                 for unit, facts_array in concept_info.get("units", {}).items():
@@ -128,13 +150,26 @@ class HistoricalEdgarFetcher(BaseFetcher):
                         # 6. Construct the simple, dense sentence for the embedding model
                         sentence = (
                             f"In the {form} filing for fiscal year {fy} period {fp}, "
-                            f"{entity_name} reported {label}{desc_text} of {formatted_val} {unit} "
+                            f"{entity_name} reported {label} of {formatted_val} {unit} "
                             f"as of {end_date}."
                         )
 
-                        text_chunks.append(sentence)
+                        documents.append(
+                            FinancialDocument(
+                                title=f"{ticker} {label} as of {end_date}",
+                                sentences=[sentence],
+                                description=description,
+                                ticker_symbol=ticker,
+                                document_type="historical_company_facts",
+                                publish_date=HistoricalEdgarFetcher._parse_filed_date(
+                                    fact.get("filed")
+                                ),
+                                publisher="SEC EDGAR",
+                                source_url=HttpUrl(COMPANYFACTS_ZIP_URL),
+                            )
+                        )
 
-        return text_chunks
+        return documents
 
     def _fetch_raw(self, ticker: str, **kwargs) -> Optional[dict]:
         """
@@ -190,19 +225,4 @@ class HistoricalEdgarFetcher(BaseFetcher):
         # here to extract only the specific metrics you care about (e.g., Revenue, Assets)
         # before passing it to the text chunker.
 
-        content = self._convert_edgar_json_to_text(raw_data)
-
-        # Map to your strict pipeline schema
-        document = FinancialDocument(
-            title=f"{ticker} Historical SEC Facts",
-            sentences=content,
-            ticker_symbol=ticker,
-            document_type="historical_company_facts",
-            publish_date=datetime.now(timezone.utc),
-            publisher="SEC EDGAR",
-            source_url=HttpUrl(
-                "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip"
-            ),
-        )
-
-        return [document]
+        return self._convert_edgar_json_to_text(raw_data, ticker)

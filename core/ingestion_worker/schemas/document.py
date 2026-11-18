@@ -5,7 +5,7 @@ from datetime import datetime
 
 class FinancialDocument(BaseModel):
     title: str
-    sentences: List[str]
+    content: str
     description: str = ""
     ticker_symbol: str
     document_type: Literal[

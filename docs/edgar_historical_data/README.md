@@ -198,12 +198,14 @@ The forms you'll see most often (counts from a sample of the local dataset):
 
 ## How this project uses the data
 
-[`_convert_edgar_json_to_text`](../../core/ingestion_worker/sources/historical_edgar.py) turns each fact into one sentence:
+[`_convert_edgar_json_to_text`](../../core/ingestion_worker/sources/historical_edgar.py) turns each fact into its own `FinancialDocument`. The document's `content` is one sentence:
 
 ```text
 In the {form} filing for fiscal year {fy} period {fp}, {entityName} reported
-{label} (Definition: {description}) of {val} {unit} as of {end}.
+{label} of {val} {unit} as of {end}.
 ```
+
+The concept's `description` goes in the document's separate `description` field, not in the sentence. The `filed` date becomes the document's `publish_date`.
 
 Given the terminology above, keep these limitations in mind:
 
@@ -211,4 +213,4 @@ Given the terminology above, keep these limitations in mind:
 2. **`start` is ignored.** Duration facts read like instant facts, so a 3-month value and a 9-month value with the same `end` become hard to tell apart.
 3. **Duplicates are kept.** Every restatement becomes its own sentence. Filtering to facts with a `frame` (or deduplicating on concept + unit + start + end) would shrink the corpus a lot.
 4. **All taxonomies are included.** `ffd` and `ecd` facts are rarely useful for financial Q&A.
-5. **Descriptions are repeated in every sentence.** One concept's long definition is embedded once per fact, which inflates size and can drown out the actual value in the embedding.
+5. **Descriptions are repeated in every document.** The sentence no longer includes the definition, but each fact's document still stores its concept's full `description`, so the same long text is kept once per fact.

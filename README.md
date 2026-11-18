@@ -18,17 +18,18 @@ The project pulls financial data from public sources such as SEC EDGAR, turns it
 The ingestion worker is a Python service (managed with [uv](https://docs.astral.sh/uv/)) that collects data and normalizes it:
 
 - **`BaseFetcher`** ([`sources/base.py`](core/ingestion_worker/sources/base.py)) is the abstract base for every data source. Each source implements two steps: `_fetch_raw` downloads the raw data, and `_preprocess` converts it into documents.
-- **`HistoricalEdgarFetcher`** ([`sources/historical_edgar.py`](core/ingestion_worker/sources/historical_edgar.py)) downloads the SEC EDGAR Company Facts bulk dataset (`companyfacts.zip`) and turns each XBRL fact into one natural-language sentence.
-- **`FinancialDocument`** ([`schemas/document.py`](core/ingestion_worker/schemas/document.py)) is the Pydantic model every fetcher returns: a title, a list of sentences, the ticker, document type, publish date, publisher, and source URL.
+- **`HistoricalEdgarFetcher`** ([`sources/historical_edgar.py`](core/ingestion_worker/sources/historical_edgar.py)) downloads the SEC EDGAR Company Facts bulk dataset (`companyfacts.zip`) and turns each XBRL fact into its own document holding one natural-language sentence.
+- **`FinancialDocument`** ([`schemas/document.py`](core/ingestion_worker/schemas/document.py)) is the Pydantic model every fetcher returns: a title, the text content, an optional description, the ticker, document type, publish date, publisher, and source URL.
 
 ## Quick start
 
 ```bash
 cd core/ingestion_worker
 uv sync
+uv run spacy download en_core_web_sm
 cp .env.example .env      # then set APP_NAME and SEC_CONTACT_EMAIL
 uv run pytest
-uv run python main.py     # fetches Apple's (AAPL) historical facts as a demo
+uv run python main.py     # fetches EDGAR facts for 10 large companies and tokenizes them with spaCy
 ```
 
 The SEC requires a contact email in the `User-Agent` header of every request, so `SEC_CONTACT_EMAIL` must be set. See the [ingestion worker setup guide](docs/setup_guides/ingestion_worker.md) for the full instructions.
@@ -50,7 +51,7 @@ The SEC requires a contact email in the `User-Agent` header of every request, so
 
 ### Setup guides
 
-- [Ingestion Worker: Environment Setup](docs/setup_guides/ingestion_worker.md): installing uv and Python, syncing dependencies, running tests, managing packages, and configuring VS Code.
+- [Ingestion Worker: Environment Setup](docs/setup_guides/ingestion_worker.md): installing uv and Python, syncing dependencies, downloading the spaCy model, configuring environment variables, running the worker and tests, managing packages, and configuring VS Code.
 
 ### Data sources
 

@@ -30,4 +30,3 @@ data/*
 # OS / editors
 .DS_Store
 .idea/
-.vscode/

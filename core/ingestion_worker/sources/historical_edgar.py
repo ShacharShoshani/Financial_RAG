@@ -148,7 +148,7 @@ class HistoricalEdgarFetcher(BaseFetcher):
                             formatted_val = str(val)
 
                         # 6. Construct the simple, dense sentence for the embedding model
-                        sentence = (
+                        content = (
                             f"In the {form} filing for fiscal year {fy} period {fp}, "
                             f"{entity_name} reported {label} of {formatted_val} {unit} "
                             f"as of {end_date}."
@@ -157,7 +157,7 @@ class HistoricalEdgarFetcher(BaseFetcher):
                         documents.append(
                             FinancialDocument(
                                 title=f"{ticker} {label} as of {end_date}",
-                                sentences=[sentence],
+                                content=content,
                                 description=description,
                                 ticker_symbol=ticker,
                                 document_type="historical_company_facts",

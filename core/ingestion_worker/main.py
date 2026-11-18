@@ -1,7 +1,10 @@
 import os
 import sys
 from dotenv import load_dotenv
+import spacy
+from tqdm import tqdm
 from sources import HistoricalEdgarFetcher
+from schemas import FinancialDocument
 
 TARGET_COMPANIES = [
     ("AAPL", "320193"),    # Apple Inc.
@@ -17,9 +20,15 @@ TARGET_COMPANIES = [
 ]
 
 def main():
+    if spacy.prefer_gpu():
+        print("GPU is available and will be used by spaCy.")
+    else:
+        print("GPU not available or not preferred by spaCy. Falling back to CPU.")
+
     print("Loading environment variables...")
     # This automatically finds and loads the .env file
     load_dotenv()
+    nlp = spacy.load("en_core_web_sm")
 
     # Retrieve the variables safely
     app_name = os.getenv("APP_NAME", "DefaultRAGProject/1.0")
@@ -35,7 +44,8 @@ def main():
     edgar_fetcher = HistoricalEdgarFetcher(user_agent=user_agent)
 
     fetchers = [edgar_fetcher]
-    documents = []
+    documents: list[FinancialDocument] = []
+    tokens: list[spacy.language.Doc] = []
 
     try:
         print("\nStarting data fetch for target companies...")
@@ -50,19 +60,15 @@ def main():
                     print(f"❌ An error occurred while fetching data: {e}")
                     print(f"Skipping {ticker} due to the error.")
 
-        print(f"\nTotal documents fetched: {len(documents)}")
-        print(f"Total payload size: {sum(len(s.encode('utf-8')) for doc in documents for s in doc.sentences) / (1024 * 1024):.2f} MB")
-        print("\nDocument Preview (First 4):")
-        for i, doc in enumerate(documents[:4], start=1):
-            print(f"{i:>3}. Title: {doc.title}\n")
-            print(f"   Content: {doc.sentences[0]}\n")
-            print(f"   Publish Date: {doc.publish_date.strftime('%Y-%m-%d')}\n")
-            print(f"   Description: {doc.description}\n")
-            print(f"   Ticker:      {doc.ticker_symbol}\n")
-            print(f"   Type:        {doc.document_type}\n")
-            print(f"   Publisher:   {doc.publisher}\n")
-            print(f"   Source URL:  {doc.source_url}\n")
-            print("" + "-" * 80 + "\n")
+        content_size = sum(len(doc.content) for doc in documents)
+        print(f"\nFetched {len(documents)} documents with a total content size of {content_size / (1024 * 1024):.2f} MB.")
+
+        for doc in tqdm(documents, desc="Tokenizing documents"):
+            next_tokens = nlp(doc.content)
+            tokens.append(next_tokens)
+
+        print(tokens[0].ents[0].text)
+        print(tokens[0].ents[0].sent.text)
 
     except Exception as e:
         print(f"❌ An error occurred during the fetching process: {e}")

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import spacy
 from tqdm import tqdm
 from sources import HistoricalEdgarFetcher
-from schemas import FinancialDocument
+from schemas import FinancialDocument, TokenizedContext
 
 TARGET_COMPANIES = [
     ("AAPL", "320193"),    # Apple Inc.
@@ -45,7 +45,7 @@ def main():
 
     fetchers = [edgar_fetcher]
     documents: list[FinancialDocument] = []
-    tokens: list[spacy.language.Doc] = []
+    tokenized_contexts: list[TokenizedContext] = []
 
     try:
         print("\nStarting data fetch for target companies...")
@@ -65,10 +65,11 @@ def main():
 
         for doc in tqdm(documents, desc="Tokenizing documents"):
             next_tokens = nlp(doc.content)
-            tokens.append(next_tokens)
+            tokenized_context = TokenizedContext(document=doc, tokens=[token.text for token in next_tokens])
+            tokenized_contexts.append(tokenized_context)
 
-        print(tokens[0].ents[0].text)
-        print(tokens[0].ents[0].sent.text)
+        print(tokenized_contexts[0].tokens[0])
+        print(tokenized_contexts[0].document.content)
 
     except Exception as e:
         print(f"❌ An error occurred during the fetching process: {e}")
